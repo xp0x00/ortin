@@ -84,6 +84,7 @@ IF(TARGET git_version)
 ENDIF(TARGET git_version)
 
 # LibUSB is required.
+set(LibUSB_STATIC_LIBS TRUE)
 FIND_PACKAGE(LibUSB 1.0 REQUIRED)
 TARGET_LINK_LIBRARIES(libortin PUBLIC LibUSB::libusb)
 
