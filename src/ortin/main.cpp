@@ -31,6 +31,8 @@
 #include <cstdio>
 #include <cstring>
 
+#include <fstream>
+
 // C++ includes.
 #include <algorithm>
 #include <chrono>
@@ -120,6 +122,13 @@ static void print_help(const TCHAR *argv0)
 		"  The following additional characters can be provided as modifiers:\n"
 		"  - I: Use interlaced output.\n"
 		"  - A: Do not use the correct aspect ratio.\n"
+		"\n"
+		"dump_isne_fw\n"
+		"- Dumps the firmware of the IS-NITRO-EMULATOR to fw_isne_dump.bin.\n"
+		"\n"
+		"dump_ds_ipl_fw\n"
+		"- Dumps the firmware of the DS IPL to fw_ds_ipl_dump.bin.\n"
+		"  dsbf_dump.nds needs to be placed in the same directory as ortin.\n"
 		"\n"
 		"sloton N\n"
 		"- Enables slot 1 (DS) or 2 (GBA).\n"
@@ -295,6 +304,36 @@ int ORTIN_CDECL _tmain(int argc, TCHAR *argv[])
 				ret = EXIT_FAILURE;
 			}
 		}
+	} else if (!_tcscmp(argv[optind], _T("dump_isne_fw"))) {
+		static uint8_t buffer[0xE0000];
+		ret = nitro->readNECMemory(0x210000, buffer, 0xE0000);
+		if(ret)
+			fprintf(stderr, "Read failure");
+		else {
+			std::ofstream fs("fw_isne_dump.bin", std::ios::out | std::ios::binary);
+		    fs.write((const char*)buffer, 0xE0000);
+		    fs.close();
+		}
+	} else if (!_tcscmp(argv[optind], _T("dump_ds_ipl_fw"))) {
+		const TCHAR* rom_filename = _T("dsbf_dump.nds");
+		ret = load_nds_rom(nitro, rom_filename);
+		Sleep(6000);
+
+		static uint8_t buffer[0x40000];
+		ret = nitro->readNECMemory(0x0F800000, buffer, 0x40000);
+		if(ret)
+			fprintf(stderr, "Read failure");
+		else {
+			std::ofstream fs("fw_ds_ipl_dump.bin", std::ios::out | std::ios::binary);
+		    fs.write((const char*)buffer, 0x40000);
+		    fs.close();
+		}
+		buffer[0] = 0x7E;
+		buffer[1] = 0;
+		ret = nitro->writeNECMemory(0x0F841000, buffer, 2);
+		if(ret)
+			fprintf(stderr, "Write failure");
+		printf("Done dumping!");
 	} else if (!_tcscmp(argv[optind], _T("slotoff"))) {
 		// Turn on a slot.
 		if (argc < optind+2) {
